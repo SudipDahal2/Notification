@@ -30,7 +30,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 # CORS Configuration for Render
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["https://notification-y02u.onrender.com"],
+        "origins": ["https://notification-y02u.onrender.com"
+                    "https://sudipdahal.me/Notification"
+                    ],
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
