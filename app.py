@@ -27,12 +27,13 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 
-# CORS Configuration for Render
+# CORS Configuration for Render and Custom Domain
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["https://notification-y02u.onrender.com"
-                    "http://sudipdahal.me/Notification"
-                    ],
+        "origins": [
+            "https://notification-y02u.onrender.com",
+            "https://sudipdahal.me"
+        ],
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
