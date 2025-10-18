@@ -6,13 +6,3 @@ PyJWT==2.8.1
 python-dotenv==1.0.0
 gunicorn==21.2.0
 Werkzeug==3.0.0
-```
-
-**Procfile:**
-```
-web: gunicorn app:app
-```
-
-**runtime.txt:**
-```
-python-3.11.7
