@@ -15,7 +15,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {
-        "origins": [os.getenv('ALLOWED_ORIGIN', 'http://localhost:3000')],
+        "origins": ["https://your-app-name.herokuapp.com"],
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
@@ -34,13 +34,26 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'database': os.getenv('DB_DATABASE', 'auth_app'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', 'SORA300'),
-    'sslmode': 'require' if os.getenv('FLASK_ENV') == 'production' else 'disable'
-}
+# Parse DATABASE_URL for Heroku
+if os.getenv('DATABASE_URL'):
+    import urllib.parse
+    parsed_url = urllib.parse.urlparse(os.getenv('DATABASE_URL'))
+    DB_CONFIG = {
+        'host': parsed_url.hostname,
+        'database': parsed_url.path.lstrip('/'),
+        'user': parsed_url.username,
+        'password': parsed_url.password,
+        'port': parsed_url.port or 5432,
+        'sslmode': 'require'
+    }
+else:
+    DB_CONFIG = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'database': os.getenv('DB_DATABASE', 'auth_app'),
+        'user': os.getenv('DB_USER', 'postgres'),
+        'password': os.getenv('DB_PASSWORD', 'SORA300'),
+        'sslmode': 'require' if os.getenv('FLASK_ENV') == 'production' else 'disable'
+    }
 
 # ADMIN CREDENTIALS from environment variables
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'yourname@gmail.com')
