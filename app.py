@@ -8,19 +8,12 @@ import datetime
 from functools import wraps
 from dotenv import load_dotenv
 import os
+import urllib.parse
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["https://your-app-name.herokuapp.com"],
-        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
 
 # Production Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'my-super-secret-key-12345')
@@ -34,9 +27,18 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 
-# Parse DATABASE_URL for Heroku
+# CORS Configuration for Render
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["https://notification-y02u.onrender.com"],
+        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+# Parse DATABASE_URL for Render
 if os.getenv('DATABASE_URL'):
-    import urllib.parse
     parsed_url = urllib.parse.urlparse(os.getenv('DATABASE_URL'))
     DB_CONFIG = {
         'host': parsed_url.hostname,
@@ -439,9 +441,9 @@ if __name__ == '__main__':
     print(f"Admin Email: {ADMIN_EMAIL}")
     print("="*60)
     print("URLs:")
-    print("  Auth page: http://localhost:5000/auth")
-    print("  Main page: http://localhost:5000/")
-    print("  Admin panel: http://localhost:5000/admin")
+    print("  Auth page: https://notification-y02u.onrender.com/auth")
+    print("  Main page: https://notification-y02u.onrender.com/")
+    print("  Admin panel: https://notification-y02u.onrender.com/admin")
     print("="*60)
     
     port = int(os.getenv('PORT', 5000))
