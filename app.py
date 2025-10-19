@@ -449,6 +449,9 @@ def health_check():
 # ============ MAIN ============
 
 if __name__ == '__main__':
+    print("="*60)
+    print("Initializing database...")
+    print("="*60)
     init_db()
     print("="*60)
     print("Flask server starting")
