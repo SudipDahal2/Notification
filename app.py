@@ -105,6 +105,7 @@ def init_db():
             conn = get_db_connection()
             cur = conn.cursor()
             
+            print("Creating users table...")
             # Create users table
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS users (
@@ -116,23 +117,29 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+            conn.commit()
+            print("✅ Users table created/verified")
             
             # Check if admin exists, if not create one
+            print(f"Checking for admin user: {ADMIN_EMAIL}")
             cur.execute('SELECT * FROM users WHERE email = %s', (ADMIN_EMAIL,))
             admin = cur.fetchone()
             
             if not admin:
+                print("Creating admin account...")
                 hashed_password = bcrypt.hashpw(ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt())
                 cur.execute(
                     'INSERT INTO users (name, email, password, is_admin) VALUES (%s, %s, %s, %s)',
                     ('Admin', ADMIN_EMAIL, hashed_password.decode('utf-8'), True)
                 )
+                conn.commit()
                 print(f"✅ Admin account created: {ADMIN_EMAIL}")
+            else:
+                print(f"✅ Admin account already exists: {ADMIN_EMAIL}")
             
-            conn.commit()
             cur.close()
             conn.close()
-            print("✅ Database initialized successfully!")
+            print("✅ Database initialization successful!")
             return True
             
         except Exception as e:
@@ -142,7 +149,8 @@ def init_db():
                 import time
                 time.sleep(2)
             else:
-                print(f"❌ Database initialization failed after {max_retries} attempts")
+                print(f"❌ Database initialization failed after {max_retries} attempts: {e}")
+                # Don't raise, let app continue - table creation will retry on first API call
                 return False
 
 # ============ DECORATORS ============
