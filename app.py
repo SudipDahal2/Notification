@@ -97,41 +97,53 @@ def get_db_connection():
         raise
 
 def init_db():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Create users table
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                is_admin BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Check if admin exists, if not create one
-        cur.execute('SELECT * FROM users WHERE email = %s', (ADMIN_EMAIL,))
-        admin = cur.fetchone()
-        
-        if not admin:
-            hashed_password = bcrypt.hashpw(ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt())
-            cur.execute(
-                'INSERT INTO users (name, email, password, is_admin) VALUES (%s, %s, %s, %s)',
-                ('Admin', ADMIN_EMAIL, hashed_password.decode('utf-8'), True)
-            )
-            print(f"✅ Admin account created: {ADMIN_EMAIL}")
-        
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("✅ Database initialized successfully!")
-    except Exception as e:
-        print(f"❌ Database initialization error: {e}")
-        raise
+    max_retries = 5
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            # Create users table
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    is_admin BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Check if admin exists, if not create one
+            cur.execute('SELECT * FROM users WHERE email = %s', (ADMIN_EMAIL,))
+            admin = cur.fetchone()
+            
+            if not admin:
+                hashed_password = bcrypt.hashpw(ADMIN_PASSWORD.encode('utf-8'), bcrypt.gensalt())
+                cur.execute(
+                    'INSERT INTO users (name, email, password, is_admin) VALUES (%s, %s, %s, %s)',
+                    ('Admin', ADMIN_EMAIL, hashed_password.decode('utf-8'), True)
+                )
+                print(f"✅ Admin account created: {ADMIN_EMAIL}")
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            print("✅ Database initialized successfully!")
+            return True
+            
+        except Exception as e:
+            retry_count += 1
+            print(f"⚠️ Database init attempt {retry_count}/{max_retries} failed: {e}")
+            if retry_count < max_retries:
+                import time
+                time.sleep(2)
+            else:
+                print(f"❌ Database initialization failed after {max_retries} attempts")
+                return False
 
 # ============ DECORATORS ============
 
