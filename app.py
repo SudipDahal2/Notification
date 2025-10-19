@@ -198,21 +198,16 @@ def token_required(f):
 # ============ PAGE ROUTES ============
 
 @app.route('/')
-@login_required
 def index():
-    """Main page - only accessible after login"""
-    return render_template('index.html')
+    return jsonify({'message': 'API is running. Visit https://sudipdahal.me/ for the frontend'}), 200
 
 @app.route('/auth')
 def auth_page():
-    """Login/Signup page"""
-    return render_template('auth.html')
+    return jsonify({'message': 'Use frontend at https://sudipdahal.me/'}), 200
 
 @app.route('/admin')
-@admin_required
 def admin_dashboard():
-    """Admin dashboard - only accessible by admin"""
-    return render_template('admin.html')
+    return jsonify({'message': 'Admin panel at https://sudipdahal.me/admin'}), 200
 
 @app.route('/logout-page')
 def logout_page():
