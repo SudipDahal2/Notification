@@ -10,24 +10,20 @@ from dotenv import load_dotenv
 import os
 import urllib.parse
 
-# Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 
-# Production Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'my-super-secret-key-12345')
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['DEBUG'] = False
 app.config['ENV'] = 'production'
 
-# Session Security
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
 
-# CORS Configuration for Render and Custom Domain
 CORS(app, resources={
     r"/api/*": {
         "origins": [
@@ -40,7 +36,6 @@ CORS(app, resources={
     }
 })
 
-# Parse DATABASE_URL for Render
 if os.getenv('DATABASE_URL'):
     parsed_url = urllib.parse.urlparse(os.getenv('DATABASE_URL'))
     DB_CONFIG = {
@@ -60,11 +55,8 @@ else:
         'sslmode': 'require' if os.getenv('FLASK_ENV') == 'production' else 'disable'
     }
 
-# ADMIN CREDENTIALS from environment variables
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'yourname@gmail.com')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'MyStrongPass123')
-
-# ============ SECURITY HEADERS ============
 
 @app.after_request
 def set_security_headers(response):
@@ -73,10 +65,7 @@ def set_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://api.emailjs.com https://*.emailjs.com"
     return response
-
-# ============ ERROR HANDLERS ============
 
 @app.errorhandler(404)
 def not_found(error):
@@ -85,8 +74,6 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
-
-# ============ DATABASE ============
 
 def get_db_connection():
     try:
@@ -106,7 +93,6 @@ def init_db():
             cur = conn.cursor()
             
             print("Creating users table...")
-            # Create users table
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -120,7 +106,6 @@ def init_db():
             conn.commit()
             print("✅ Users table created/verified")
             
-            # Check if admin exists, if not create one
             print(f"Checking for admin user: {ADMIN_EMAIL}")
             cur.execute('SELECT * FROM users WHERE email = %s', (ADMIN_EMAIL,))
             admin = cur.fetchone()
@@ -150,10 +135,7 @@ def init_db():
                 time.sleep(2)
             else:
                 print(f"❌ Database initialization failed after {max_retries} attempts: {e}")
-                # Don't raise, let app continue - table creation will retry on first API call
                 return False
-
-# ============ DECORATORS ============
 
 def login_required(f):
     @wraps(f)
@@ -195,28 +177,6 @@ def token_required(f):
     
     return decorated
 
-# ============ PAGE ROUTES ============
-
-@app.route('/')
-def index():
-    return jsonify({'message': 'API is running. Visit https://sudipdahal.me/ for the frontend'}), 200
-
-@app.route('/auth')
-def auth_page():
-    return jsonify({'message': 'Use frontend at https://sudipdahal.me/'}), 200
-
-@app.route('/admin')
-def admin_dashboard():
-    return jsonify({'message': 'Admin panel at https://sudipdahal.me/admin'}), 200
-
-@app.route('/logout-page')
-def logout_page():
-    """Logout from session"""
-    session.clear()
-    return redirect(url_for('auth_page'))
-
-# ============ API ROUTES ============
-
 @app.route('/api/signup', methods=['POST'])
 def signup():
     try:
@@ -229,7 +189,6 @@ def signup():
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         
-        # Validation
         if not name or not email or not password:
             return jsonify({'error': 'All fields are required'}), 400
         
@@ -242,7 +201,6 @@ def signup():
         if '@' not in email or '.' not in email:
             return jsonify({'error': 'Invalid email format'}), 400
         
-        # Hash password
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
         conn = get_db_connection()
@@ -256,14 +214,12 @@ def signup():
             user = cur.fetchone()
             conn.commit()
             
-            # Set session
             session['user_id'] = user['id']
             session['user_name'] = user['name']
             session['user_email'] = user['email']
             session['is_admin'] = user['is_admin']
             session.permanent = True
             
-            # Generate token
             token = jwt.encode({
                 'user_id': user['id'],
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
@@ -321,14 +277,12 @@ def login():
         if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        # Set session
         session['user_id'] = user['id']
         session['user_name'] = user['name']
         session['user_email'] = user['email']
         session['is_admin'] = user.get('is_admin', False)
         session.permanent = True
         
-        # Generate token
         token = jwt.encode({
             'user_id': user['id'],
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
@@ -376,7 +330,6 @@ def get_user(current_user_id):
 
 @app.route('/api/current-user', methods=['GET'])
 def get_current_user():
-    """Get current logged-in user from session"""
     if 'user_id' in session:
         return jsonify({
             'user': {
@@ -390,7 +343,6 @@ def get_current_user():
 
 @app.route('/api/users', methods=['GET'])
 def get_all_users():
-    """Only admins can see all users"""
     if 'user_id' not in session or not session.get('is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -412,11 +364,9 @@ def get_all_users():
 
 @app.route('/api/delete-user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
-    """Only admins can delete users"""
     if 'user_id' not in session or not session.get('is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
     
-    # Prevent admin from deleting themselves
     if user_id == session['user_id']:
         return jsonify({'error': 'Cannot delete your own account'}), 400
     
@@ -438,7 +388,6 @@ def delete_user(user_id):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -449,23 +398,12 @@ def health_check():
     except:
         return jsonify({'status': 'API is running', 'database': 'disconnected'}), 500
 
-# ============ MAIN ============
+try:
+    print("Attempting database initialization...")
+    init_db()
+except Exception as e:
+    print(f"Warning: Could not initialize database on startup: {e}")
 
 if __name__ == '__main__':
-    print("="*60)
-    print("Initializing database...")
-    print("="*60)
-    init_db()
-    print("="*60)
-    print("Flask server starting")
-    print(f"Environment: {os.getenv('FLASK_ENV', 'development')}")
-    print(f"Admin Email: {ADMIN_EMAIL}")
-    print("="*60)
-    print("URLs:")
-    print("  Auth page: https://notification-y02u.onrender.com/auth")
-    print("  Main page: https://notification-y02u.onrender.com/")
-    print("  Admin panel: https://notification-y02u.onrender.com/admin")
-    print("="*60)
-    
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
