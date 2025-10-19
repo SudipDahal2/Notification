@@ -212,7 +212,6 @@
         const API_URL = 'https://notification-y02u.onrender.com/api';
         let isLogin = true;
 
-        // Toggle between login and signup
         function toggleForm() {
             isLogin = !isLogin;
             const loginForm = document.getElementById('loginForm');
@@ -235,13 +234,11 @@
             clearMessage();
         }
 
-        // Show message
         function showMessage(message, isError = false) {
             const messageBox = document.getElementById('messageBox');
             messageBox.innerHTML = `<div class="message ${isError ? 'error' : 'success'}">${message}</div>`;
         }
 
-        // Clear message
         function clearMessage() {
             document.getElementById('messageBox').innerHTML = '';
         }
@@ -262,15 +259,20 @@
                 const response = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
+                    // Store token and user in localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
                     showMessage('Login successful! Redirecting...', false);
                     setTimeout(() => {
-                        window.location.href = data.redirect || '/';
+                        window.location.href = '/';
                     }, 1000);
                 } else {
                     showMessage(data.error, true);
@@ -312,15 +314,20 @@
                 const response = await fetch(`${API_URL}/signup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ name, email, password }),
+                    credentials: 'include'
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
+                    // Store token and user in localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
                     showMessage('Account created! Redirecting...', false);
                     setTimeout(() => {
-                        window.location.href = data.redirect || '/';
+                        window.location.href = '/';
                     }, 1000);
                 } else {
                     showMessage(data.error, true);

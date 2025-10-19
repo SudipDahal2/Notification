@@ -19,27 +19,16 @@
   </style>
 </head>
 <body class="bg-white">
-  <script>
-    // Check if user is logged in, if not redirect to login page
-    fetch('https://notification-y02u.onrender.com/api/current-user', {
-      credentials:'include'
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.user) {
-          window.location.href = '/auth.html';
-        }
-      })
-      .catch(() => {
-        // API call failed, user not logged in
-        window.location.href = '/auth.html';
-      });
-  </script>
-
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
+
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/auth.html';
+    }
 
     const Icons = {
       Calendar: () => (
