@@ -4,12 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Daily Task Manager</title>
-
-  <!-- libs -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -21,539 +16,567 @@
 <body class="bg-white">
   <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import { getFirestore, collection, doc, query, where, getDocs, addDoc, deleteDoc, updateDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/auth.html';
-    }
-
-    const Icons = {
-      Calendar: () => (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
-      ),
-      Clock: () => (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      ),
-      Plus: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-      ),
-      Edit2: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-        </svg>
-      ),
-      Trash2: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
-      ),
-      Check: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      ),
-      PlayCircle: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polygon points="10 8 16 12 10 16 10 8"></polygon>
-        </svg>
-      ),
-      Circle: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-        </svg>
-      ),
-      Bell: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-        </svg>
-      ),
-      X: () => (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      ),
-      Mail: ({ className = "w-5 h-5" }) => (
-        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path>
-          <polyline points="22,6 12,13 2,6"></polyline>
-        </svg>
-      ),
-      User: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-      ),
-      LogOut: () => (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-      )
+    // ⚠️ REPLACE THIS WITH YOUR FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIhh_bVeC3x02Yo2pji9ZcT-TbbSAXzJ0",
+      authDomain: "notification-webapp-205cf.firebaseapp.com",
+      projectId: "notification-webapp-205cf",
+      storageBucket: "notification-webapp-205cf.firebasestorage.app",
+      messagingSenderId: "224899952309",
+      appId: "1:224899952309:web:3b07c841e1b4527f9c98fc"
     };
 
-    const API_URL = 'https://notification-y02u.onrender.com/api';
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    function TaskManager() {
-      const [tasks, setTasks] = useState([]);
-      const [showForm, setShowForm] = useState(false);
-      const [editingId, setEditingId] = useState(null);
-      const [filter, setFilter] = useState('all');
-      const [notifications, setNotifications] = useState([]);
-      const [notificationPermission, setNotificationPermission] = useState('default');
-      const [userEmail, setUserEmail] = useState('');
-      const [userName, setUserName] = useState('');
-      const [showEmailSetup, setShowEmailSetup] = useState(false);
-      const [emailEnabled, setEmailEnabled] = useState(false);
-      const [currentUser, setCurrentUser] = useState(null);
-      const [showUserMenu, setShowUserMenu] = useState(false);
-      const [formData, setFormData] = useState({
-        date: '', time: '', topic: '', notes: '', status: 'about-to-start'
-      });
+    let currentUser = null;
+    let tasks = [];
+    let filteredTasks = [];
 
-      const EMAILJS_SERVICE_ID = 'service_e6j21q9';
-      const EMAILJS_TEMPLATE_ID = 'template_7zy2nwb';
-      const EMAILJS_PUBLIC_KEY = 'Ufiwcr-RnwIzmT25x';
+    // Check if user is logged in
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = '/auth.html';
+        return;
+      }
+      currentUser = user;
+      initApp();
+    });
 
-      useEffect(() => {
-        try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch(e) { console.warn(e); }
+    const Icons = {
+      Calendar: () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+      Clock: () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+      Plus: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+      Edit2: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`,
+      Trash2: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
+      Check: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+      PlayCircle: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>`,
+      Circle: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg>`,
+      Bell: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
+      X: () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+      Mail: (size = "w-5 h-5") => `<svg class="${size}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
+      User: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+      LogOut: () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`
+    };
 
-        const fetchCurrentUser = async () => {
-          try {
-            const response = await fetch(`${API_URL}/current-user`);
-            if (response.ok) {
-              const data = await response.json();
-              setCurrentUser(data.user);
-            }
-          } catch (e) {
-            console.warn('Failed to fetch current user:', e);
-          }
+    const EMAILJS_SERVICE_ID = 'service_e6j21q9';
+    const EMAILJS_TEMPLATE_ID = 'template_7zy2nwb';
+    const EMAILJS_PUBLIC_KEY = 'Ufiwcr-RnwIzmT25x';
+
+    let notifications = [];
+    let notificationPermission = 'default';
+    let userEmail = '';
+    let userName = '';
+    let emailEnabled = false;
+    let showForm = false;
+    let editingId = null;
+    let filter = 'all';
+
+    async function initApp() {
+      try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch(e) { console.warn(e); }
+
+      userName = currentUser.displayName || 'User';
+      userEmail = localStorage.getItem('userEmail') || '';
+      emailEnabled = !!userEmail;
+
+      if ('Notification' in window) {
+        notificationPermission = Notification.permission;
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(p => notificationPermission = p);
+        }
+      }
+
+      await loadTasks();
+      render();
+
+      setInterval(checkUpcomingTasks, 60000);
+      checkUpcomingTasks();
+    }
+
+    async function loadTasks() {
+      try {
+        const q = query(
+          collection(db, 'tasks'),
+          where('userId', '==', currentUser.uid),
+          orderBy('date', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        tasks = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+        tasks = [];
+      }
+    }
+
+    function showNotification(title, body) {
+      const id = Date.now();
+      notifications.push({ id, title, body });
+      render();
+      setTimeout(() => {
+        notifications = notifications.filter(n => n.id !== id);
+        render();
+      }, 5000);
+      if (notificationPermission === 'granted') { 
+        try { new Notification(title, { body }); } catch {} 
+      }
+    }
+
+    async function sendEmail(params) {
+      if (!emailEnabled || !userEmail) return;
+      try {
+        const emailParams = {
+          to_email: userEmail,
+          to_name: userName,
+          email: userEmail,
+          title: `Task Manager - ${params.notification_type || 'Notification'}`,
+          notification_type: params.notification_type || 'NOTIFICATION',
+          task_topic: params.task_topic || 'Task',
+          task_date: params.task_date || 'N/A',
+          task_time: params.task_time || 'N/A',
+          task_status: params.task_status || 'N/A',
+          task_notes: params.task_notes || 'No additional notes',
+          message: params.message || '',
+          send_time: new Date().toLocaleString(),
+          app_url: window.location.href
         };
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailParams);
+      } catch (e) {
+        console.error('Email error:', e);
+      }
+    }
 
-        fetchCurrentUser();
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const date = document.getElementById('taskDate').value;
+      const time = document.getElementById('taskTime').value;
+      const topic = document.getElementById('taskTopic').value;
+      const notes = document.getElementById('taskNotes').value;
+      const status = document.getElementById('taskStatus').value;
 
-        const savedEmail = localStorage.getItem('userEmail');
-        const savedName = localStorage.getItem('userName');
-        const savedTasks = localStorage.getItem('tasks');
+      if (!date || !time || !topic) return;
 
-        if (savedEmail) {
-          setUserEmail(savedEmail);
-          setUserName(savedName || '');
-          setEmailEnabled(true);
-        } else {
-          setShowEmailSetup(true);
-        }
-        if (savedTasks) { try { setTasks(JSON.parse(savedTasks)); } catch {} }
-
-        if ('Notification' in window) {
-          setNotificationPermission(Notification.permission);
-          if (Notification.permission === 'default') {
-            Notification.requestPermission().then(setNotificationPermission);
-          }
-        }
-      }, []);
-
-      useEffect(() => {
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-      }, [tasks]);
-
-      useEffect(() => {
-        const interval = setInterval(checkUpcomingTasks, 60000);
-        checkUpcomingTasks();
-        return () => clearInterval(interval);
-      }, [tasks, emailEnabled, userEmail]);
-
-      const showNotification = (title, body) => {
-        const id = Date.now();
-        setNotifications(prev => [...prev, { id, title, body }]);
-        setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 5000);
-        if (notificationPermission === 'granted') { try { new Notification(title, { body }); } catch {} }
-      };
-
-      const sendEmail = async (params) => {
-        if (!emailEnabled || !userEmail) return;
-        try {
-          const emailParams = {
-            to_email: userEmail,
-            to_name: userName || 'User',
-            email: userEmail,
-            title: `Task Manager - ${params.notification_type || 'Notification'}`,
-            notification_type: params.notification_type || 'NOTIFICATION',
-            task_topic: params.task_topic || 'Task',
-            task_date: params.task_date || 'N/A',
-            task_time: params.task_time || 'N/A',
-            task_status: params.task_status || 'N/A',
-            task_notes: params.task_notes || 'No additional notes',
-            message: params.message || '',
-            send_time: new Date().toLocaleString(),
-            app_url: window.location.href
-          };
-          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailParams);
-          showNotification('Email Sent', 'Notification email sent successfully!');
-        } catch (e) {
-          showNotification('Email Error', `Failed to send email: ${e?.text || e?.message || 'Unknown error'}`);
-        }
-      };
-
-      const testEmail = () => {
-        if (!userEmail) { alert('Please set up your email first!'); setShowEmailSetup(true); return; }
-        sendEmail({
-          notification_type: 'TEST EMAIL',
-          task_topic: 'Test Task',
-          task_date: new Date().toLocaleDateString(),
-          task_time: new Date().toLocaleTimeString(),
-          task_status: 'TESTING',
-          task_notes: 'This is a test email to verify your email configuration.',
-          message: 'If you received this, email notifications are working!'
-        });
-        showNotification('Test Email', 'Sending test email to ' + userEmail);
-      };
-
-      const checkUpcomingTasks = () => {
-        const now = new Date();
-        tasks.forEach(task => {
-          if (task.status !== 'about-to-start') return;
-          const when = new Date(`${task.date}T${task.time}`);
-          const minutes = Math.floor((when - now) / 60000);
-
-          const notify = (title, msg, type) => {
-            showNotification(title, msg);
-            sendEmail({
-              notification_type: type,
-              task_topic: task.topic,
-              task_date: new Date(task.date).toLocaleDateString(),
-              task_time: task.time,
-              task_status: 'About to Start',
-              task_notes: task.notes || 'No additional notes',
-              message: msg
-            });
-          };
-
-          if (minutes === 15) notify('Reminder: 15 Minutes', `Your task "${task.topic}" starts in 15 minutes!`, 'UPCOMING REMINDER');
-          if (minutes === 5) notify('Reminder: 5 Minutes', `Your task "${task.topic}" starts in 5 minutes!`, 'URGENT REMINDER');
-          if (minutes === 0) notify('Task Starting Now!', `Your task "${task.topic}" is starting now!`, 'STARTING NOW');
-        });
-      };
-
-      const saveEmailSettings = () => {
-        if (!userEmail) return;
-        localStorage.setItem('userEmail', userEmail);
-        localStorage.setItem('userName', userName);
-        setEmailEnabled(true);
-        setShowEmailSetup(false);
-        showNotification('Email Notifications Enabled', `Notifications will be sent to ${userEmail}`);
-      };
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!formData.date || !formData.time || !formData.topic) return;
-
+      try {
         if (editingId) {
-          setTasks(tasks.map(t => t.id === editingId ? { ...formData, id: editingId } : t));
-          showNotification('Task Updated', `"${formData.topic}" has been updated`);
-          sendEmail({
-            notification_type: 'TASK UPDATED',
-            task_topic: formData.topic,
-            task_date: new Date(formData.date).toLocaleDateString(),
-            task_time: formData.time,
-            task_status: formData.status.replace('-', ' ').toUpperCase(),
-            task_notes: formData.notes || 'No additional notes',
-            message: `Your task "${formData.topic}" has been updated.`
+          await updateDoc(doc(db, 'tasks', editingId), {
+            date, time, topic, notes, status, updated_at: serverTimestamp()
           });
-          setEditingId(null);
+          showNotification('Task Updated', `"${topic}" has been updated`);
+          await sendEmail({
+            notification_type: 'TASK UPDATED',
+            task_topic: topic,
+            task_date: new Date(date).toLocaleDateString(),
+            task_time: time,
+            task_status: status.replace('-', ' ').toUpperCase(),
+            task_notes: notes || 'No additional notes',
+            message: `Your task "${topic}" has been updated.`
+          });
+          editingId = null;
         } else {
-          const newTask = { ...formData, id: Date.now() };
-          setTasks(prev => [...prev, newTask]);
-          showNotification('Task Created', `"${formData.topic}" has been added`);
-          sendEmail({
+          await addDoc(collection(db, 'tasks'), {
+            userId: currentUser.uid,
+            date, time, topic, notes, status,
+            created_at: serverTimestamp()
+          });
+          showNotification('Task Created', `"${topic}" has been added`);
+          await sendEmail({
             notification_type: 'NEW TASK CREATED',
-            task_topic: formData.topic,
-            task_date: new Date(formData.date).toLocaleDateString(),
-            task_time: formData.time,
-            task_status: formData.status.replace('-', ' ').toUpperCase(),
-            task_notes: formData.notes || 'No additional notes',
-            message: `New task "${formData.topic}" has been created.`
+            task_topic: topic,
+            task_date: new Date(date).toLocaleDateString(),
+            task_time: time,
+            task_status: status.replace('-', ' ').toUpperCase(),
+            task_notes: notes || 'No additional notes',
+            message: `New task "${topic}" has been created.`
           });
         }
         resetForm();
-      };
+        await loadTasks();
+        render();
+      } catch (error) {
+        console.error('Error saving task:', error);
+        showNotification('Error', 'Failed to save task');
+      }
+    }
 
-      const resetForm = () => {
-        setFormData({ date:'', time:'', topic:'', notes:'', status:'about-to-start' });
-        setShowForm(false);
-        setEditingId(null);
-      };
+    function resetForm() {
+      document.getElementById('taskDate').value = '';
+      document.getElementById('taskTime').value = '';
+      document.getElementById('taskTopic').value = '';
+      document.getElementById('taskNotes').value = '';
+      document.getElementById('taskStatus').value = 'about-to-start';
+      showForm = false;
+      editingId = null;
+    }
 
-      const handleEdit = (task) => { setFormData(task); setEditingId(task.id); setShowForm(true); };
-      const handleDelete = (id) => {
-        const t = tasks.find(x => x.id === id); if (!t) return;
-        if (!confirm('Delete this task?')) return;
-        setTasks(tasks.filter(x => x.id !== id));
-        showNotification('Task Deleted', `"${t.topic}" has been removed`);
-        sendEmail({
+    async function handleEdit(task) {
+      document.getElementById('taskDate').value = task.date;
+      document.getElementById('taskTime').value = task.time;
+      document.getElementById('taskTopic').value = task.topic;
+      document.getElementById('taskNotes').value = task.notes || '';
+      document.getElementById('taskStatus').value = task.status;
+      editingId = task.id;
+      showForm = true;
+      render();
+    }
+
+    async function handleDelete(id, topic) {
+      if (!confirm('Delete this task?')) return;
+      try {
+        await deleteDoc(doc(db, 'tasks', id));
+        showNotification('Task Deleted', `"${topic}" has been removed`);
+        await sendEmail({
           notification_type: 'TASK DELETED',
-          task_topic: t.topic,
-          task_date: new Date(t.date).toLocaleDateString(),
-          task_time: t.time,
-          task_status: t.status.replace('-', ' ').toUpperCase(),
-          task_notes: t.notes || 'No additional notes',
-          message: `Task "${t.topic}" was deleted.`
+          task_topic: topic,
+          task_status: 'DELETED',
+          task_notes: 'Task was deleted',
+          message: `Task "${topic}" was deleted.`
         });
-      };
+        await loadTasks();
+        render();
+      } catch (error) {
+        console.error('Error deleting task:', error);
+      }
+    }
 
-      const handleStatusChange = (id, newStatus) => {
-        const t = tasks.find(x => x.id === id); if (!t) return;
-        setTasks(tasks.map(x => x.id === id ? { ...x, status: newStatus } : x));
+    async function handleStatusChange(id, newStatus, topic) {
+      try {
+        await updateDoc(doc(db, 'tasks', id), {
+          status: newStatus,
+          updated_at: serverTimestamp()
+        });
         const human = newStatus.replace('-', ' ').toUpperCase();
-        showNotification('Status Updated', `"${t.topic}" → ${human}`);
-        sendEmail({
+        showNotification('Status Updated', `"${topic}" → ${human}`);
+        await sendEmail({
           notification_type: 'STATUS CHANGED',
-          task_topic: t.topic,
-          task_date: new Date(t.date).toLocaleDateString(),
-          task_time: t.time,
+          task_topic: topic,
           task_status: human,
-          task_notes: t.notes || 'No additional notes',
-          message: `The status of "${t.topic}" is now ${human}.`
+          message: `The status of "${topic}" is now ${human}.`
         });
-      };
+        await loadTasks();
+        render();
+      } catch (error) {
+        console.error('Error updating task:', error);
+      }
+    }
 
-      const handleLogout = () => {
-        window.location.href = '/logout-page';
-      };
+    async function handleLogout() {
+      try {
+        await signOut(auth);
+        window.location.href = '/auth.html';
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
 
-      const getStatusIcon = (s) => s === 'completed' ? <Icons.Check/> : s === 'doing' ? <Icons.PlayCircle/> : <Icons.Circle/>;
-      const getStatusBg = (s) => s === 'completed' ? 'bg-green-50 border-green-200' : s === 'doing' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200';
+    function saveEmailSettings() {
+      const email = document.getElementById('emailInput').value;
+      const name = document.getElementById('nameInput').value;
+      if (!email) return;
+      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userName', name);
+      userEmail = email;
+      userName = name;
+      emailEnabled = true;
+      showNotification('Email Notifications Enabled', `Notifications will be sent to ${email}`);
+      render();
+    }
 
-      const filteredTasks = tasks
-        .filter(t => filter === 'all' || t.status === filter)
-        .sort((a,b) => new Date(`${b.date} ${b.time}`) - new Date(`${a.date} ${a.time}`));
+    function testEmail() {
+      if (!userEmail) {
+        alert('Please set up your email first!');
+        return;
+      }
+      sendEmail({
+        notification_type: 'TEST EMAIL',
+        task_topic: 'Test Task',
+        task_date: new Date().toLocaleDateString(),
+        task_time: new Date().toLocaleTimeString(),
+        task_status: 'TESTING',
+        task_notes: 'This is a test email to verify your email configuration.',
+        message: 'If you received this, email notifications are working!'
+      });
+      showNotification('Test Email', 'Sending test email to ' + userEmail);
+    }
 
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-          {showEmailSetup && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full">
-                <div className="text-center mb-6">
-                  <div className="mx-auto mb-4 text-indigo-600 flex items-center justify-center">
-                    <Icons.Mail className="w-16 h-16" />
+    function checkUpcomingTasks() {
+      const now = new Date();
+      tasks.forEach(task => {
+        if (task.status !== 'about-to-start') return;
+        const when = new Date(`${task.date}T${task.time}`);
+        const minutes = Math.floor((when - now) / 60000);
+
+        if (minutes === 15) {
+          showNotification('Reminder: 15 Minutes', `Your task "${task.topic}" starts in 15 minutes!`);
+          sendEmail({
+            notification_type: 'UPCOMING REMINDER',
+            task_topic: task.topic,
+            task_date: new Date(task.date).toLocaleDateString(),
+            task_time: task.time,
+            task_status: 'About to Start',
+            task_notes: task.notes || 'No additional notes',
+            message: `Your task "${task.topic}" starts in 15 minutes!`
+          });
+        }
+        if (minutes === 5) {
+          showNotification('Reminder: 5 Minutes', `Your task "${task.topic}" starts in 5 minutes!`);
+          sendEmail({
+            notification_type: 'URGENT REMINDER',
+            task_topic: task.topic,
+            task_date: new Date(task.date).toLocaleDateString(),
+            task_time: task.time,
+            task_status: 'About to Start',
+            task_notes: task.notes || 'No additional notes',
+            message: `Your task "${task.topic}" starts in 5 minutes!`
+          });
+        }
+        if (minutes === 0) {
+          showNotification('Task Starting Now!', `Your task "${task.topic}" is starting now!`);
+          sendEmail({
+            notification_type: 'STARTING NOW',
+            task_topic: task.topic,
+            task_date: new Date(task.date).toLocaleDateString(),
+            task_time: task.time,
+            task_status: 'Starting Now',
+            task_notes: task.notes || 'No additional notes',
+            message: `Your task "${task.topic}" is starting now!`
+          });
+        }
+      });
+    }
+
+    function getStatusIcon(s) {
+      if (s === 'completed') return Icons.Check();
+      if (s === 'doing') return Icons.PlayCircle();
+      return Icons.Circle();
+    }
+
+    function getStatusBg(s) {
+      if (s === 'completed') return 'bg-green-50 border-green-200';
+      if (s === 'doing') return 'bg-blue-50 border-blue-200';
+      return 'bg-gray-50 border-gray-200';
+    }
+
+    function filterTasksList() {
+      return tasks.filter(t => filter === 'all' || t.status === filter);
+    }
+
+    function render() {
+      filteredTasks = filterTasksList();
+
+      document.getElementById('root').innerHTML = `
+        <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
+          ${notifications.length > 0 ? `
+            <div class="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+              ${notifications.map(n => `
+                <div class="bg-white border-l-4 border-indigo-600 rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in">
+                  <div class="text-indigo-600 flex-shrink-0 mt-0.5">${Icons.Bell()}</div>
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-800">${n.title}</h4>
+                    <p class="text-sm text-gray-600">${n.body}</p>
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Email Notifications</h2>
-                  <p className="text-gray-600">Enter your email to receive task reminders</p>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                    <input type="text" value={userName} onChange={(e)=>setUserName(e.target.value)} placeholder="John Doe" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" value={userEmail} onChange={(e)=>setUserEmail(e.target.value)} placeholder="your.email@example.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={saveEmailSettings} className="flex-1 bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Enable Notifications</button>
-                    <button onClick={()=>setShowEmailSetup(false)} className="px-6 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition">Skip</button>
-                  </div>
-                </div>
-              </div>
+              `).join('')}
             </div>
-          )}
+          ` : ''}
 
-          <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
-            {notifications.map(n => (
-              <div key={n.id} className="bg-white border-l-4 border-indigo-600 rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in">
-                <div className="text-indigo-600 flex-shrink-0 mt-0.5"><Icons.Bell/></div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800">{n.title}</h4>
-                  <p className="text-sm text-gray-600">{n.body}</p>
-                </div>
-                <button onClick={()=>setNotifications(prev => prev.filter(x=>x.id!==n.id))} className="text-gray-400 hover:text-gray-600" aria-label="Dismiss"><Icons.X/></button>
-              </div>
-            ))}
-          </div>
-
-          <div className="max-w-6xl mx-auto px-4">
-            <header className="text-center mb-8 pt-8">
-              <div className="flex items-center justify-between mb-6">
+          <div class="max-w-6xl mx-auto px-4">
+            <header class="text-center mb-8 pt-8">
+              <div class="flex items-center justify-between mb-6">
                 <div></div>
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-800">Daily Task Manager</h1>
-                  <p className="text-gray-600">Track your daily activities and stay organized</p>
+                  <h1 class="text-4xl font-bold text-gray-800">Daily Task Manager</h1>
+                  <p class="text-gray-600">Track your daily activities and stay organized</p>
                 </div>
-                {currentUser && (
-                  <div className="relative">
-                    <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                      <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {currentUser.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{currentUser.name}</span>
-                    </button>
-                    {showUserMenu && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                        <div className="p-4 border-b border-gray-200">
-                          <p className="text-sm font-semibold text-gray-800">{currentUser.name}</p>
-                          <p className="text-xs text-gray-600">{currentUser.email}</p>
-                          {currentUser.is_admin && <p className="text-xs text-indigo-600 font-semibold mt-1">👑 Admin</p>}
-                        </div>
-                        <div className="p-2">
-                          {currentUser.is_admin && (
-                            <a href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 rounded transition">📊 Admin Panel</a>
-                          )}
-                          <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 rounded transition flex items-center gap-2">
-                            <Icons.LogOut /> Logout
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                <div class="relative group">
+                  <button class="flex items-center gap-3 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      ${userName.charAt(0).toUpperCase()}
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">${userName}</span>
+                  </button>
+                  <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 hidden group-hover:block z-50">
+                    <div class="p-4 border-b border-gray-200">
+                      <p class="text-sm font-semibold text-gray-800">${userName}</p>
+                      <p class="text-xs text-gray-600">${currentUser.email}</p>
+                    </div>
+                    <div class="p-2">
+                      <button onclick="window.handleLogout()" class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 rounded transition flex items-center gap-2">
+                        ${Icons.LogOut()} Logout
+                      </button>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-center gap-4 text-sm flex-wrap">
-                {emailEnabled && (
-                  <div className="flex items-center gap-2 text-green-700">
-                    <Icons.Mail className="w-4 h-4" />
-                    <span>Email: {userEmail}</span>
+              <div class="mt-3 flex items-center justify-center gap-4 text-sm flex-wrap">
+                ${emailEnabled ? `
+                  <div class="flex items-center gap-2 text-green-700">
+                    ${Icons.Mail('w-4 h-4')}
+                    <span>Email: ${userEmail}</span>
                   </div>
-                )}
-                <button onClick={()=>setShowEmailSetup(true)} className="text-indigo-600 hover:text-indigo-700 underline">
-                  {emailEnabled ? 'Change Email' : 'Setup Email Notifications'}
-                </button>
-                {emailEnabled && (
-                  <button onClick={testEmail} className="bg-green-600 text-white px-4 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition">
+                  <button onclick="window.testEmail()" class="bg-green-600 text-white px-4 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition">
                     Send Test Email
                   </button>
-                )}
+                ` : ''}
+                <button onclick="window.toggleEmailModal()" class="text-indigo-600 hover:text-indigo-700 underline">
+                  ${emailEnabled ? 'Change Email' : 'Setup Email Notifications'}
+                </button>
               </div>
             </header>
 
-            <div className="mb-6 flex flex-wrap gap-3 justify-between items-center">
-              <div className="flex gap-2 flex-wrap">
-                <button onClick={()=>setFilter('all')} className={`px-4 py-2 rounded-lg font-medium transition ${filter==='all'?'bg-indigo-600 text-white':'bg-white text-gray-700 hover:bg-gray-100'}`}>All Tasks</button>
-                <button onClick={()=>setFilter('about-to-start')} className={`px-4 py-2 rounded-lg font-medium transition ${filter==='about-to-start'?'bg-gray-700 text-white':'bg-white text-gray-700 hover:bg-gray-100'}`}>To Start</button>
-                <button onClick={()=>setFilter('doing')} className={`px-4 py-2 rounded-lg font-medium transition ${filter==='doing'?'bg-blue-600 text-white':'bg-white text-gray-700 hover:bg-gray-100'}`}>In Progress</button>
-                <button onClick={()=>setFilter('completed')} className={`px-4 py-2 rounded-lg font-medium transition ${filter==='completed'?'bg-green-600 text-white':'bg-white text-gray-700 hover:bg-gray-100'}`}>Completed</button>
+            <div class="mb-6 flex flex-wrap gap-3 justify-between items-center">
+              <div class="flex gap-2 flex-wrap">
+                <button onclick="window.setFilter('all')" class="px-4 py-2 rounded-lg font-medium transition ${filter === 'all' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">All Tasks</button>
+                <button onclick="window.setFilter('about-to-start')" class="px-4 py-2 rounded-lg font-medium transition ${filter === 'about-to-start' ? 'bg-gray-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">To Start</button>
+                <button onclick="window.setFilter('doing')" class="px-4 py-2 rounded-lg font-medium transition ${filter === 'doing' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">In Progress</button>
+                <button onclick="window.setFilter('completed')" class="px-4 py-2 rounded-lg font-medium transition ${filter === 'completed' ? 'bg-green-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}">Completed</button>
               </div>
-              <button onClick={()=>setShowForm(v=>!v)} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center gap-2">
-                <Icons.Plus/> {showForm ? 'Close' : 'Add Task'}
+              <button onclick="window.toggleShowForm()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center gap-2">
+                ${Icons.Plus()} ${showForm ? 'Close' : 'Add Task'}
               </button>
             </div>
 
-            {showForm && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">{editingId?'Edit Task':'Create New Task'}</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${showForm ? `
+              <div class="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">${editingId ? 'Edit Task' : 'Create New Task'}</h2>
+                <form onsubmit="window.handleSubmit(event)" class="space-y-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                      <input type="date" value={formData.date} onChange={(e)=>setFormData({...formData, date:e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required/>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                      <input type="date" id="taskDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                      <input type="time" value={formData.time} onChange={(e)=>setFormData({...formData, time:e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required/>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                      <input type="time" id="taskTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
-                    <input type="text" value={formData.topic} onChange={(e)=>setFormData({...formData, topic:e.target.value})} placeholder="What do you need to do?" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required/>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                    <input type="text" id="taskTopic" placeholder="What do you need to do?" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea value={formData.notes} onChange={(e)=>setFormData({...formData, notes:e.target.value})} placeholder="Additional details..." rows="4" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"/>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea id="taskNotes" placeholder="Additional details..." rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"></textarea>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select value={formData.status} onChange={(e)=>setFormData({...formData, status:e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="taskStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                       <option value="about-to-start">About to Start</option>
                       <option value="doing">Doing</option>
                       <option value="completed">Completed</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-end gap-3">
-                    <button type="button" onClick={resetForm} className="px-5 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition">Cancel</button>
-                    <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
-                      {editingId ? 'Save Changes' : 'Create Task'}
+                  <div class="flex items-center justify-end gap-3">
+                    <button type="button" onclick="window.resetFormBtn()" class="px-5 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
+                      ${editingId ? 'Save Changes' : 'Create Task'}
                     </button>
                   </div>
                 </form>
               </div>
-            )}
+            ` : ''}
 
-            <section aria-label="Task list" className="space-y-4">
-              {filteredTasks.length === 0 ? (
-                <div className="bg-white/60 backdrop-blur border border-dashed border-gray-300 rounded-xl p-10 text-center text-gray-500">
-                  No tasks yet. Click <span className="font-semibold">Add Task</span> to create one.
+            <section class="space-y-4">
+              ${filteredTasks.length === 0 ? `
+                <div class="bg-white/60 backdrop-blur border border-dashed border-gray-300 rounded-xl p-10 text-center text-gray-500">
+                  No tasks yet. Click <span class="font-semibold">Add Task</span> to create one.
                 </div>
-              ) : (
-                filteredTasks.map(task => (
-                  <article key={task.id} className={`rounded-xl border p-5 bg-white shadow-sm ${getStatusBg(task.status)}`}>
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 text-gray-700">{getStatusIcon(task.status)}</div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{task.topic}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mt-1 flex-wrap">
-                            <span className="inline-flex items-center gap-1"><Icons.Calendar/> {task.date || '—'}</span>
-                            <span className="inline-flex items-center gap-1"><Icons.Clock/> {task.time || '—'}</span>
-                            <span className="px-2 py-0.5 rounded-full text-xs border bg-white">{task.status.replace(/-/g,' ')}</span>
-                          </div>
+              ` : filteredTasks.map(task => `
+                <article class="rounded-xl border p-5 bg-white shadow-sm ${getStatusBg(task.status)}">
+                  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="flex items-start gap-3">
+                      <div class="mt-0.5 text-gray-700">${getStatusIcon(task.status)}</div>
+                      <div>
+                        <h3 class="text-lg font-semibold text-gray-900">${task.topic}</h3>
+                        <div class="flex items-center gap-4 text-sm text-gray-600 mt-1 flex-wrap">
+                          <span class="inline-flex items-center gap-1">${Icons.Calendar()} ${task.date || '—'}</span>
+                          <span class="inline-flex items-center gap-1">${Icons.Clock()} ${task.time || '—'}</span>
+                          <span class="px-2 py-0.5 rounded-full text-xs border bg-white">${task.status.replace(/-/g,' ')}</span>
                         </div>
                       </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {task.status !== 'doing' && (
-                          <button onClick={()=>handleStatusChange(task.id, 'doing')} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Start</button>
-                        )}
-                        {task.status !== 'completed' && (
-                          <button onClick={()=>handleStatusChange(task.id, 'completed')} className="px-3 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition">Complete</button>
-                        )}
-                        {task.status !== 'about-to-start' && (
-                          <button onClick={()=>handleStatusChange(task.id, 'about-to-start')} className="px-3 py-2 text-sm rounded-lg bg-gray-700 text-white hover:bg-gray-800 transition">To Start</button>
-                        )}
-                        <button onClick={()=>handleEdit(task)} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition inline-flex items-center gap-1">
-                          <Icons.Edit2/> Edit
-                        </button>
-                        <button onClick={()=>handleDelete(task.id)} className="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition inline-flex items-center gap-1">
-                          <Icons.Trash2/> Delete
-                        </button>
-                      </div>
                     </div>
-                    {task.notes && <p className="mt-3 text-gray-700 whitespace-pre-wrap">{task.notes}</p>}
-                  </article>
-                ))
-              )}
+
+                    <div class="flex flex-wrap gap-2">
+                      ${task.status !== 'doing' ? `<button onclick="window.changeStatus('${task.id}', 'doing', '${task.topic}')" class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Start</button>` : ''}
+                      ${task.status !== 'completed' ? `<button onclick="window.changeStatus('${task.id}', 'completed', '${task.topic}')" class="px-3 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition">Complete</button>` : ''}
+                      ${task.status !== 'about-to-start' ? `<button onclick="window.changeStatus('${task.id}', 'about-to-start', '${task.topic}')" class="px-3 py-2 text-sm rounded-lg bg-gray-700 text-white hover:bg-gray-800 transition">To Start</button>` : ''}
+                      <button onclick="window.editTask('${task.id}')" class="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition inline-flex items-center gap-1">
+                        ${Icons.Edit2()} Edit
+                      </button>
+                      <button onclick="window.deleteTask('${task.id}', '${task.topic}')" class="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 transition inline-flex items-center gap-1">
+                        ${Icons.Trash2()} Delete
+                      </button>
+                    </div>
+                  </div>
+                  ${task.notes ? `<p class="mt-3 text-gray-700 whitespace-pre-wrap">${task.notes}</p>` : ''}
+                </article>
+              `).join('')}
             </section>
 
-            <footer className="text-center text-xs text-gray-400 mt-10 mb-6">
-              Built with React, Tailwind CSS & EmailJS (localStorage for persistence)
+            <footer class="text-center text-xs text-gray-400 mt-10 mb-6">
+              Built with Firebase, React & Tailwind CSS
             </footer>
           </div>
+
+          ${`
+            <div id="emailModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full">
+                <div class="text-center mb-6">
+                  <div class="mx-auto mb-4 text-indigo-600 flex items-center justify-center">
+                    ${Icons.Mail('w-16 h-16')}
+                  </div>
+                  <h2 class="text-2xl font-bold text-gray-800 mb-2">Email Notifications</h2>
+                  <p class="text-gray-600">Enter your email to receive task reminders</p>
+                </div>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                    <input type="text" id="nameInput" placeholder="John Doe" value="${userName}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="emailInput" placeholder="your.email@example.com" value="${userEmail}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                  </div>
+                  <div class="flex gap-3">
+                    <button onclick="window.saveEmailSettings()" class="flex-1 bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Enable Notifications</button>
+                    <button onclick="window.closeEmailModal()" class="px-6 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition">Skip</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `}
         </div>
-      );
+      `;
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<TaskManager />);
+    // Global functions
+    window.handleSubmit = handleSubmit;
+    window.handleLogout = handleLogout;
+    window.toggleShowForm = () => { showForm = !showForm; render(); };
+    window.resetFormBtn = resetForm;
+    window.setFilter = (f) => { filter = f; render(); };
+    window.editTask = async (id) => { const task = tasks.find(t => t.id === id); if (task) await handleEdit(task); };
+    window.deleteTask = handleDelete;
+    window.changeStatus = handleStatusChange;
+    window.toggleEmailModal = () => { 
+      const modal = document.getElementById('emailModal');
+      if (modal) modal.classList.toggle('hidden');
+    };
+    window.closeEmailModal = () => {
+      const modal = document.getElementById('emailModal');
+      if (modal) modal.classList.add('hidden');
+    };
+    window.saveEmailSettings = saveEmailSettings;
+    window.testEmail = testEmail;
   </script>
 </body>
 </html>

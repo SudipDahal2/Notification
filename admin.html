@@ -3,336 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - User Management</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .header h1 {
-            color: #333;
-            font-size: 28px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .stat-card h3 {
-            font-size: 14px;
-            font-weight: 500;
-            opacity: 0.9;
-            margin-bottom: 10px;
-        }
-
-        .stat-card .number {
-            font-size: 32px;
-            font-weight: 700;
-        }
-
-        .search-bar {
-            margin-bottom: 20px;
-        }
-
-        .search-bar input {
-            width: 100%;
-            padding: 12px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .search-bar input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-
-        thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
-            font-size: 14px;
-        }
-
-        tbody tr:hover {
-            background: #f5f7fa;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #667eea;
-            font-size: 18px;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-        }
-
-        .back-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-    </style>
+    <title>Admin Dashboard - Firebase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <a href="/" class="back-link">← Back to Home</a>
-    
-    <div class="container">
-        <div class="header">
-            <h1>👥 User Management Dashboard</h1>
-            <button class="btn" onclick="refreshData()">🔄 Refresh</button>
-        </div>
+<body class="bg-gray-900 text-gray-100">
+    <div id="root"></div>
 
-        <div class="stats">
-            <div class="stat-card">
-                <h3>Total Users</h3>
-                <div class="number" id="totalUsers">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>New Today</h3>
-                <div class="number" id="newToday">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>This Week</h3>
-                <div class="number" id="thisWeek">0</div>
-            </div>
-        </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getAuth, signOut, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, getDoc, doc, updateDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-        <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="🔍 Search by name or email..." onkeyup="filterUsers()">
-        </div>
+        // ⚠️ REPLACE THIS WITH YOUR FIREBASE CONFIG
+       const firebaseConfig = {
+        apiKey: "AIzaSyBIhh_bVeC3x02Yo2pji9ZcT-TbbSAXzJ0",
+        authDomain: "notification-webapp-205cf.firebaseapp.com",
+        projectId: "notification-webapp-205cf",
+        storageBucket: "notification-webapp-205cf.firebasestorage.app",
+        messagingSenderId: "224899952309",
+        appId: "1:224899952309:web:3b07c841e1b4527f9c98fc"
+        };
 
-        <div id="loadingMessage" class="loading">Loading users...</div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        <table id="usersTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Created At</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="usersTableBody">
-            </tbody>
-        </table>
-
-        <div id="noDataMessage" class="no-data" style="display: none;">
-            No users found. Create your first account!
-        </div>
-    </div>
-
-    <script>
-        let allUsers = [];
-
-        // Fetch users from API
-        async function fetchUsers() {
+        // Check if user is admin
+        async function checkAdminAccess(user) {
             try {
-                const response = await fetch('/api/users');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    allUsers = data.users;
-                    displayUsers(allUsers);
-                    updateStats(allUsers);
-                } else {
-                    console.error('Failed to fetch users');
-                }
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userData = userDoc.data();
+                return userData && userData.is_admin === true;
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('loadingMessage').textContent = 'Failed to load users';
+                console.error('Error checking admin status:', error);
+                return false;
             }
         }
 
-        // Display users in table
-        function displayUsers(users) {
-            const tbody = document.getElementById('usersTableBody');
-            const table = document.getElementById('usersTable');
-            const loading = document.getElementById('loadingMessage');
-            const noData = document.getElementById('noDataMessage');
-
-            loading.style.display = 'none';
-
-            if (users.length === 0) {
-                table.style.display = 'none';
-                noData.style.display = 'block';
-                return;
+        // Admin Panel Component
+        class AdminDashboard {
+            constructor() {
+                this.currentUser = null;
+                this.users = [];
+                this.filteredUsers = [];
+                this.searchTerm = '';
+                this.init();
             }
 
-            table.style.display = 'table';
-            noData.style.display = 'none';
+            async init() {
+                onAuthStateChanged(auth, async (user) => {
+                    if (!user) {
+                        this.renderLoginPage();
+                        return;
+                    }
 
-            tbody.innerHTML = users.map(user => `
-                <tr>
-                    <td>#${user.id}</td>
-                    <td><strong>${user.name}</strong></td>
-                    <td>${user.email}</td>
-                    <td>${formatDate(user.created_at)}</td>
-                    <td>
-                        ${user.is_admin 
-                            ? '<span class="badge" style="background: #ffd700; color: #000;">Admin</span>' 
-                            : '<span class="badge badge-active">User</span>'}
-                    </td>
-                    <td>
-                        ${!user.is_admin 
-                            ? `<button class="btn" style="background: #dc3545; padding: 6px 12px; font-size: 12px;" onclick="deleteUser(${user.id}, '${user.name}')">Delete</button>` 
-                            : '<span style="color: #999;">Protected</span>'}
-                    </td>
-                </tr>
-            `).join('');
+                    const isAdmin = await checkAdminAccess(user);
+                    if (!isAdmin) {
+                        this.renderNotAuthorized();
+                        return;
+                    }
+
+                    this.currentUser = user;
+                    this.renderDashboard();
+                    await this.loadUsers();
+                });
+            }
+
+            renderLoginPage() {
+                document.getElementById('root').innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center p-4">
+                        <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full">
+                            <div class="text-center mb-8">
+                                <h1 class="text-4xl font-bold text-blue-400 mb-2">👑 Admin Panel</h1>
+                                <p class="text-gray-400">Login to access the dashboard</p>
+                            </div>
+
+                            <div class="space-y-4">
+                                <button onclick="adminDash.loginWithGoogle()" class="w-full bg-white text-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-100 transition flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                    </svg>
+                                    Login with Google
+                                </button>
+
+                                <div class="relative">
+                                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-700"></div></div>
+                                    <div class="relative flex justify-center text-sm"><span class="px-2 bg-gray-800 text-gray-400">Or</span></div>
+                                </div>
+
+                                <button onclick="adminDash.toggleEmailForm()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                                    Login with Email
+                                </button>
+                            </div>
+
+                            <div id="emailForm" class="hidden mt-6 pt-6 border-t border-gray-700">
+                                <div class="space-y-3">
+                                    <input type="email" id="emailInput" placeholder="Admin email" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <input type="password" id="passwordInput" placeholder="Password" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button onclick="adminDash.loginWithEmail()" class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition">
+                                        Sign In
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p class="text-center text-gray-500 text-sm mt-6">Contact your administrator for access</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderNotAuthorized() {
+                document.getElementById('root').innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-red-900 to-red-800 flex items-center justify-center p-4">
+                        <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+                            <div class="text-6xl mb-4">🚫</div>
+                            <h1 class="text-3xl font-bold text-red-400 mb-2">Access Denied</h1>
+                            <p class="text-gray-400 mb-6">You don't have admin privileges to access this panel.</p>
+                            <button onclick="adminDash.logout()" class="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderDashboard() {
+                document.getElementById('root').innerHTML = `
+                    <div class="min-h-screen bg-gray-900">
+                        <!-- Header -->
+                        <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 shadow-lg">
+                            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                                <div>
+                                    <h1 class="text-3xl font-bold text-white">👥 Admin Dashboard</h1>
+                                    <p class="text-gray-300 mt-1">User Management System</p>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="text-right">
+                                        <p class="text-white font-semibold">${this.currentUser.displayName || this.currentUser.email}</p>
+                                        <p class="text-gray-300 text-sm">👑 Admin</p>
+                                    </div>
+                                    <button onclick="adminDash.logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Content -->
+                        <div class="max-w-7xl mx-auto p-6">
+                            <!-- Stats -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 shadow-lg">
+                                    <div class="text-blue-200 text-sm font-semibold mb-2">Total Users</div>
+                                    <div class="text-4xl font-bold text-white" id="totalUsers">0</div>
+                                </div>
+                                <div class="bg-gradient-to-br from-green-600 to-green-800 rounded-xl p-6 shadow-lg">
+                                    <div class="text-green-200 text-sm font-semibold mb-2">New Today</div>
+                                    <div class="text-4xl font-bold text-white" id="newToday">0</div>
+                                </div>
+                                <div class="bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl p-6 shadow-lg">
+                                    <div class="text-purple-200 text-sm font-semibold mb-2">This Week</div>
+                                    <div class="text-4xl font-bold text-white" id="thisWeek">0</div>
+                                </div>
+                            </div>
+
+                            <!-- Search Bar -->
+                            <div class="mb-6">
+                                <input type="text" id="searchInput" placeholder="🔍 Search by name or email..." 
+                                    onkeyup="adminDash.searchUsers()" 
+                                    class="w-full bg-gray-800 text-white px-6 py-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+
+                            <!-- Users Table -->
+                            <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full">
+                                        <thead class="bg-gray-900 border-b border-gray-700">
+                                            <tr>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">User ID</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Name</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Email</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Joined Date</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
+                                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody" class="divide-y divide-gray-700">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noData" class="text-center py-10 text-gray-400">
+                                    Loading users...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async loadUsers() {
+                try {
+                    const usersCollection = collection(db, 'users');
+                    const q = query(usersCollection, orderBy('created_at', 'desc'));
+                    const snapshot = await getDocs(q);
+                    
+                    this.users = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+
+                    this.displayUsers(this.users);
+                    this.updateStats();
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                    const noData = document.getElementById('noData');
+                    if (noData) noData.textContent = 'Error loading users: ' + error.message;
+                }
+            }
+
+            displayUsers(users) {
+                const tbody = document.getElementById('usersTableBody');
+                const noData = document.getElementById('noData');
+
+                if (!tbody) return;
+
+                if (users.length === 0) {
+                    tbody.innerHTML = '';
+                    if (noData) {
+                        noData.textContent = 'No users found';
+                        noData.style.display = 'block';
+                    }
+                    return;
+                }
+
+                if (noData) noData.style.display = 'none';
+                
+                tbody.innerHTML = users.map(user => `
+                    <tr class="hover:bg-gray-700 transition">
+                        <td class="px-6 py-4 text-sm text-gray-300">
+                            <span class="font-mono text-xs bg-gray-700 px-2 py-1 rounded">${user.id.substring(0, 8)}...</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="text-white font-medium">${user.name || 'N/A'}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-400">${user.email}</td>
+                        <td class="px-6 py-4 text-sm text-gray-400">
+                            ${user.created_at ? new Date(user.created_at.toDate()).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            ${user.is_admin 
+                                ? '<span class="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-xs font-semibold">👑 Admin</span>' 
+                                : '<span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold">✓ User</span>'}
+                        </td>
+                        <td class="px-6 py-4 text-sm space-x-2">
+                            ${!user.is_admin ? `
+                                <button onclick="adminDash.promoteToAdmin('${user.id}')" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs font-semibold transition">
+                                    Promote
+                                </button>
+                                <button onclick="adminDash.deleteUser('${user.id}', '${user.name}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-semibold transition">
+                                    Delete
+                                </button>
+                            ` : '<span class="text-gray-500 text-xs">Protected</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            updateStats() {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+                const total = this.users.length;
+                const newToday = this.users.filter(u => {
+                    const created = u.created_at?.toDate ? u.created_at.toDate() : new Date(u.created_at);
+                    return created >= today;
+                }).length;
+
+                const thisWeek = this.users.filter(u => {
+                    const created = u.created_at?.toDate ? u.created_at.toDate() : new Date(u.created_at);
+                    return created >= weekAgo;
+                }).length;
+
+                const totalEl = document.getElementById('totalUsers');
+                const newTodayEl = document.getElementById('newToday');
+                const thisWeekEl = document.getElementById('thisWeek');
+
+                if (totalEl) totalEl.textContent = total;
+                if (newTodayEl) newTodayEl.textContent = newToday;
+                if (thisWeekEl) thisWeekEl.textContent = thisWeek;
+            }
+
+            searchUsers() {
+                const input = document.getElementById('searchInput');
+                if (!input) return;
+                
+                const term = input.value.toLowerCase();
+                this.filteredUsers = this.users.filter(u =>
+                    (u.name?.toLowerCase().includes(term) || '') ||
+                    u.email.toLowerCase().includes(term)
+                );
+                this.displayUsers(this.filteredUsers);
+            }
+
+            async deleteUser(userId, userName) {
+                if (!confirm(`Delete user "${userName}"? This cannot be undone.`)) return;
+
+                try {
+                    await deleteDoc(doc(db, 'users', userId));
+                    alert('User deleted successfully');
+                    await this.loadUsers();
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    alert('Error deleting user: ' + error.message);
+                }
+            }
+
+            async promoteToAdmin(userId) {
+                if (!confirm('Make this user an admin?')) return;
+
+                try {
+                    await updateDoc(doc(db, 'users', userId), {
+                        is_admin: true
+                    });
+                    alert('User promoted to admin');
+                    await this.loadUsers();
+                } catch (error) {
+                    console.error('Error promoting user:', error);
+                    alert('Error promoting user: ' + error.message);
+                }
+            }
+
+            async loginWithGoogle() {
+                try {
+                    const provider = new GoogleAuthProvider();
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error('Google login error:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+
+            async loginWithEmail() {
+                const email = document.getElementById('emailInput').value;
+                const password = document.getElementById('passwordInput').value;
+
+                if (!email || !password) {
+                    alert('Please enter email and password');
+                    return;
+                }
+
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    console.error('Email login error:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+
+            toggleEmailForm() {
+                const form = document.getElementById('emailForm');
+                if (form) form.classList.toggle('hidden');
+            }
+
+            async logout() {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
         }
 
-        // Update statistics
-        function updateStats(users) {
-            const total = users.length;
-            const today = new Date().toDateString();
-            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-            const newToday = users.filter(u => 
-                new Date(u.created_at).toDateString() === today
-            ).length;
-
-            const thisWeek = users.filter(u => 
-                new Date(u.created_at) >= weekAgo
-            ).length;
-
-            document.getElementById('totalUsers').textContent = total;
-            document.getElementById('newToday').textContent = newToday;
-            document.getElementById('thisWeek').textContent = thisWeek;
-        }
-
-        // Filter users by search
-        function filterUsers() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
-            const filtered = allUsers.filter(user => 
-                user.name.toLowerCase().includes(searchTerm) ||
-                user.email.toLowerCase().includes(searchTerm)
-            );
-
-            displayUsers(filtered);
-        }
-
-        // Format date
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const options = { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            };
-            return date.toLocaleDateString('en-US', options);
-        }
-
-        // Refresh data
-        function refreshData() {
-            document.getElementById('loadingMessage').style.display = 'block';
-            document.getElementById('usersTable').style.display = 'none';
-            fetchUsers();
-        }
-
-        // Load users on page load
-        fetchUsers();
+        // Initialize admin dashboard
+        window.adminDash = new AdminDashboard();
     </script>
 </body>
 </html>
