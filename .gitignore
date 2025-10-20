@@ -43,3 +43,5 @@ wheels/
 
 # Logs
 *.log
+
+*firebase-config.js/
